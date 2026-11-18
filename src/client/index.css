@@ -1045,7 +1045,8 @@ p {
     font-size: 30px;
   }
   .jar-name {
-    font-size: 9px;
+    font-size: 11px;
+    line-height: 1.05;
   }
   .worktable {
     padding: 13px 11px;
@@ -1066,18 +1067,19 @@ p {
     gap: 4px;
   }
   .ingredient-token {
-    height: 116px;
+    height: 124px;
     padding: 3px 1px 4px;
     border-radius: 30px 30px 12px 12px;
   }
   .ingredient-token img {
-    height: 75px;
+    height: 72px;
   }
   .ingredient-token span {
-    font-size: 9px;
+    font-size: 11px;
+    line-height: 1.05;
   }
   .ingredient-token small {
-    font-size: 7px;
+    font-size: 9px;
   }
   .action-bar {
     position: sticky;

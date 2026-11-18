@@ -1,5 +1,5 @@
 import './index.css';
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { selectDailyPuzzle } from '../shared/daily';
 import {
@@ -49,6 +49,8 @@ export const App = () => {
   const [cabinetOpen, setCabinetOpen] = useState(false);
   const [newRewards, setNewRewards] = useState<RewardId[]>([]);
   const [rewardSaved, setRewardSaved] = useState(false);
+  const treasuresButtonRef = useRef<HTMLButtonElement>(null);
+  const cabinetRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -71,11 +73,57 @@ export const App = () => {
 
   useEffect(() => {
     if (!cabinetOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setCabinetOpen(false);
+    const dialog = cabinetRef.current;
+    const trigger = treasuresButtonRef.current;
+    dialog?.querySelector<HTMLElement>('button')?.focus();
+    const keepFocusInside = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setCabinetOpen(false);
+      }
+      if (event.key !== 'Tab' || !dialog) return;
+      const focusable = [
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        ),
+      ];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) {
+        event.preventDefault();
+        dialog.focus();
+      } else if (
+        event.shiftKey &&
+        (document.activeElement === first ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        last.focus();
+      } else if (
+        !event.shiftKey &&
+        (document.activeElement === last ||
+          !dialog.contains(document.activeElement))
+      ) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => document.removeEventListener('keydown', closeOnEscape);
+    const keepProgrammaticFocusInside = (event: FocusEvent) => {
+      if (
+        dialog &&
+        event.target instanceof Node &&
+        !dialog.contains(event.target)
+      ) {
+        dialog.querySelector<HTMLElement>('button')?.focus();
+      }
+    };
+    document.addEventListener('keydown', keepFocusInside);
+    document.addEventListener('focusin', keepProgrammaticFocusInside);
+    return () => {
+      document.removeEventListener('keydown', keepFocusInside);
+      document.removeEventListener('focusin', keepProgrammaticFocusInside);
+      trigger?.focus();
+    };
   }, [cabinetOpen]);
 
   useEffect(() => {
@@ -224,6 +272,7 @@ export const App = () => {
               <strong>{daily.date} UTC</strong>
             </div>
             <button
+              ref={treasuresButtonRef}
               className="cabinet-trigger"
               type="button"
               onClick={() => setCabinetOpen(true)}
@@ -427,15 +476,16 @@ export const App = () => {
             }}
           >
             <section
+              ref={cabinetRef}
               className="treasure-cabinet"
               role="dialog"
               aria-modal="true"
               aria-labelledby="cabinet-heading"
+              tabIndex={-1}
             >
               <button
                 className="cabinet-close"
                 type="button"
-                autoFocus
                 onClick={() => setCabinetOpen(false)}
                 aria-label="Close Treasure Cabinet"
               >
