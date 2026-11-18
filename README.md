@@ -1,35 +1,66 @@
 # The Midnight Apothecary
 
-**A Daily Spell Puzzle**
+*A Daily Spell Puzzle*
 
-A daily deduction puzzle for Reddit, built with the Devvit React web template. A mischievous wizard raccoon needs help placing five magical ingredients in five numbered jars.
+A mischievous wizard raccoon has five enchanted jars, five magical ingredients, and a spellbook full of clues. Place each ingredient in its proper jar, cast the spell, and collect a little moonlight. The Midnight Apothecary brings playful illustration, approachable deduction, and accessible tap or keyboard controls to Reddit.
 
 ## How to play
 
-Each ingredient belongs in exactly one jar. Read the spellbook's four or five clues, tap an ingredient and a jar in either order, and press **CAST THE SPELL!**. Selecting an ingredient already in a jar moves it; placing one in an occupied jar returns the displaced ingredient to the tray. **Reset** clears the jars. An incorrect spell keeps your arrangement in place so you can revise it. Progressive hints give reasoning guidance without revealing the answer.
+1. Read the spellbook clues. Each ingredient belongs in exactly one numbered jar.
+2. Select an ingredient and a jar in either order. You can move an ingredient or change a filled jar without creating duplicates.
+3. Press **CAST THE SPELL!** to check your arrangement. A wrong spell keeps your choices so you can try again. **Reset** clears the jars, and progressive hints offer a nudge without revealing the answer.
 
-The ingredients are Mandrake, Eye of Newt, Phoenix Feather, Bullfrog, and Carnivorous Plant. The Moon Crystal is a collectible reward, not a puzzle ingredient.
+The five ingredients are **Mandrake**, **Eye of Newt**, **Phoenix Feather**, **Bullfrog**, and **Carnivorous Plant**. Clues describe positions and relationships, such as “immediately to the left,” “somewhere to the right,” and “not next to.” The Moon Crystal is a reward, not a puzzle ingredient.
 
-## Daily puzzles
+## Daily spells and treasures
 
-Spell 1 begins at **00:00 UTC on November 18, 2026** and uses the introductory clues in the work order. The displayed spell number increases each UTC day. The 30 curated spells repeat in a fixed cycle, so everyone receives the same challenge on the same UTC date. An open game updates at UTC midnight or when its tab becomes visible again. There is no randomness in puzzle selection.
+The collection contains **30 curated puzzles**. Every clue set is checked against all **120 possible arrangements** and has exactly one solution, with no redundant clues. The daily spell is selected deterministically by UTC date: spell 1 begins **November 18, 2026**, and the collection rotates after spell 30. Everyone sees the same challenge on the same UTC day.
 
-The pure clue engine in `src/shared/apothecary.ts` evaluates each clue against all **120** possible ingredient orders. Tests require exactly one solution for every published spell, distinct solutions, and no redundant clues. All 30 spells have different mixes of clue kinds. The first five have a middle or end clue as a gentle starting point. `tools/generate-apothecary.mjs` records the deterministic curation process. The server checks submitted arrangements against today's clues; solution orders are not rendered in the interface.
+A signed-in player earns one **Moon Crystal** for their first successful spell each UTC day. Consecutive completions build a streak; a missed day resets the current streak but does not remove earned treasures. A **3-day streak** unlocks the Apprentice Star, and a **7-day streak** unlocks the Enchanted Familiar Charm. The **Treasure Cabinet** beside the daily date shows crystals, streaks, and collectibles. Hints and retries do not affect rewards. Player progress is stored per Reddit account in Devvit Redis, and the server verifies each completed spell before awarding it.
 
-## Streaks and treasure
+## Screenshots
 
-A signed-in Reddit player earns one Moon Crystal for each UTC day's first successful spell. Consecutive days increase the current streak. A missed day resets the current streak, while the longest streak, completed dates, and unlocked treasures remain. The **Apprentice Star** unlocks at a 3-day streak and the **Enchanted Familiar Charm** at 7 days. Open **Treasure Cabinet** beside the daily puzzle date to see progress and the next milestone. Hints and retries do not affect rewards.
+| Splash screen | Daily puzzle |
+| --- | --- |
+| ![The wizard raccoon on the splash screen](docs/screenshots/splash-desktop.png) | ![Five jars, spellbook clues, and ingredient controls](docs/screenshots/gameplay-desktop.png) |
 
-The server uses the authenticated `context.userId` and installation-scoped Redis. It verifies the submitted arrangement and date, then updates a per-player progress record with Redis `WATCH`/`MULTI`/`EXEC` so duplicate requests cannot award twice. If storage fails, the game identifies the local spell success but does not claim the reward was saved. Completed UTC dates persist independently of the 30-day puzzle rotation.
+| Successful spell | Treasure Cabinet | Mobile layout |
+| --- | --- | --- |
+| ![A solved spell with glowing jars](docs/screenshots/spell-success-desktop.png) | ![Collected Moon Crystal and streak milestones](docs/screenshots/treasure-cabinet.png) | ![The completed puzzle on a narrow mobile screen](docs/screenshots/gameplay-mobile.png) |
 
-## Development
+## Built with
 
-- `npm run dev`: run the Reddit playtest using the Devvit template
-- `npm run test:unit`: test clue semantics, all daily solutions, placement controls, UTC rotation, streaks, duplicate requests, and storage errors
-- `npm run test:types`: TypeScript project check
-- `npm run lint`: ESLint
-- `npm run build`: production client and server build
+**Reddit Devvit**, **React**, **TypeScript**, and **Redis**. The clue engine and UTC puzzle selection are separate from the React interface. Original apothecary illustrations are in `public/apothecary`.
 
-The existing `splash.html` inline entrypoint opens `game.html` in expanded mode. The React interface is in `src/client/game.tsx` and `src/client/splash.tsx`; gameplay logic is separate. Original storybook artwork is kept under `public/apothecary`. No new runtime dependencies were added.
+## License & Attribution
 
-The previous five-bin trash chute game remains recoverable from the `feature/trash-chute` Git branch.
+The Midnight Apothecary was created by **Sabrina Palis** and is maintained on GitHub as [MinervaRose](https://github.com/MinervaRose). Original game source code is **Copyright © 2026 Sabrina Palis** and available under [BSD-3-Clause](LICENSE). The project uses Reddit's Devvit React starter template, **Copyright © 2025 Reddit Inc.**, also under BSD-3-Clause; its notice and conditions are preserved in `LICENSE`.
+
+**Original game artwork and screenshots © 2026 Sabrina Palis, where protected by applicable law. Rights reserved to that extent.** This includes illustrations in `public/`, screenshots in `docs/screenshots/`, and original apothecary backgrounds and decorative artwork. These creative assets are not licensed for reuse under BSD-3-Clause. See [ARTWORK-LICENSE.md](ARTWORK-LICENSE.md) for the asset scope. Third-party materials retain their own rights and notices.
+
+## AI-Assisted Creation
+
+The Midnight Apothecary was created by Sabrina Palis with the assistance of generative AI tools for software development and illustration. The game's concept, creative direction, puzzle design decisions, and final review were guided by Sabrina Palis.
+
+## Local development
+
+Use **Node.js 24.18.0** (see `.nvmrc`) and npm. Devvit playtesting requires a Reddit account with access to the configured test subreddit.
+
+```sh
+npm ci
+npm run login
+npm run dev
+```
+
+`npm run dev` starts the Devvit playtest. The inline splash opens the expanded puzzle view. The application identifier in `devvit.json` remains unchanged.
+
+## Checks
+
+```sh
+npm run test:unit
+npm run test:types
+npm run lint
+npm run build
+```
+
+The unit tests cover clue semantics, all 30 unique solutions, placement behavior, UTC rotation, streaks, duplicate completion requests, and storage failures. The production build bundles the Devvit client and server.
