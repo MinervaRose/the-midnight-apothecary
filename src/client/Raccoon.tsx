@@ -1,53 +1,47 @@
 export type RaccoonMood = 'waiting' | 'rummaging' | 'surprised' | 'victory' | 'failure';
 
-type RaccoonProps = {
-  mood: RaccoonMood;
-  className?: string;
-};
+type RaccoonProps = { mood: RaccoonMood; className?: string };
 
-// Original, small vector character. All expressions share the same silhouette.
+// One round, wide-eyed raccoon silhouette for the playfield, splash and visits.
 export const Raccoon = ({ mood, className = '' }: RaccoonProps) => {
   const surprised = mood === 'surprised';
   const happy = mood === 'victory';
   const smug = mood === 'failure';
   const busy = mood === 'rummaging';
+  const look = busy ? 5 : smug ? 3 : 0;
 
-  return <svg className={`raccoon-svg mood-${mood} ${className}`} viewBox="0 0 120 112" aria-hidden="true" focusable="false">
-    <path d="M82 76c9-20 27-24 33-9 9 21-7 34-33 22" fill="#85979b" stroke="#153a45" strokeWidth="4" strokeLinecap="round" />
-    <path d="M97 60c-1 8 0 14 5 19M111 64c-6 4-9 11-8 20" fill="none" stroke="#344d58" strokeWidth="8" />
-    <path d="M87 79q9 9 21 7" fill="none" stroke="#b7c6bb" strokeWidth="3" strokeLinecap="round" />
-    <ellipse cx="60" cy="84" rx="31" ry="24" fill="#85979b" stroke="#153a45" strokeWidth="4" />
-    <ellipse cx="60" cy="90" rx="17" ry="14" fill="#f3e4c6" />
-    <path d="M46 72h28l-14 17Z" fill="#ed785b" stroke="#153a45" strokeWidth="3" strokeLinejoin="round" />
-    <path d="M51 76h18" stroke="#ffc67a" strokeWidth="2" strokeLinecap="round" />
-    <path d="M34 74c-12 5-15 14-7 18M84 74c12 5 15 14 7 18" fill="none" stroke="#153a45" strokeWidth="13" strokeLinecap="round" />
-    <path d="M34 74c-12 5-15 14-7 18M84 74c12 5 15 14 7 18" fill="none" stroke="#85979b" strokeWidth="8" strokeLinecap="round" />
-    <path d="M41 91l-4 12M79 91l4 12" stroke="#153a45" strokeWidth="9" strokeLinecap="round" />
-    <path d="M31 29 28 9 48 19M89 29 92 9 72 19" fill="#75868a" stroke="#153a45" strokeWidth="4" strokeLinejoin="round" />
-    <path d="M32 21 33 15 42 21M88 21 87 15 78 21" fill="#f7af9c" />
-    <ellipse cx="60" cy="47" rx="39" ry="37" fill="#85979b" stroke="#153a45" strokeWidth="4" />
-    <path d="M31 30q10-13 23-14" fill="none" stroke="#c5d2c5" strokeWidth="4" strokeLinecap="round" opacity=".85" />
-    <path d="M23 40c12-17 23-15 37-6 14-9 25-11 37 6-3 19-16 25-37 20-21 5-34-1-37-20Z" fill="#344d58" />
-    <ellipse cx="60" cy="65" rx="19" ry="13" fill="#f3e4c6" />
+  return <svg className={`raccoon-svg mood-${mood} ${className}`} viewBox="0 0 190 180" aria-hidden="true" focusable="false">
+    <path d="M125 131c26-27 59-11 54 16-3 20-33 27-56 3" fill="#8b9998" stroke="#173b44" strokeWidth="6" strokeLinejoin="round" />
+    <path d="M145 120q-7 17 0 33M163 126q-7 16-1 30M176 139q-8 7-10 15" fill="none" stroke="#354c54" strokeWidth="12" strokeLinecap="round" />
+    <path d="M132 138q11 22 31 21" fill="none" stroke="#c3cebf" strokeWidth="5" strokeLinecap="round" />
+    <ellipse cx="88" cy="140" rx="45" ry="35" fill="#899a98" stroke="#173b44" strokeWidth="6" />
+    <ellipse cx="87" cy="149" rx="25" ry="20" fill="#f7e6c9" />
+    <path d="M58 163q-13 13-18 7M114 163q15 13 20 5" fill="none" stroke="#173b44" strokeWidth="10" strokeLinecap="round" />
+    <path d="M64 123q-14 7-18 21M112 123q15 7 19 20" fill="none" stroke="#173b44" strokeWidth="18" strokeLinecap="round" />
+    <circle cx="45" cy="146" r="12" fill="#899a98" stroke="#173b44" strokeWidth="5" />
+    <circle cx="132" cy="146" r="12" fill="#899a98" stroke="#173b44" strokeWidth="5" />
+    <path d="M38 57 28 15q20 2 34 23M120 38q17-31 37-32l-8 53" fill="#879997" stroke="#173b44" strokeWidth="6" strokeLinejoin="round" />
+    <path d="M40 41 36 24q10 4 16 13M135 33q10-13 16-17l-3 23" fill="#f4a396" />
+    <path d="M89 25c34 0 62 24 62 57 0 36-29 62-64 62-37 0-62-26-62-61 0-34 27-58 64-58Z" fill="#91a4a0" stroke="#173b44" strokeWidth="6" />
+    <path d="M43 58q16-27 41-22" fill="none" stroke="#cdd6c5" strokeWidth="7" strokeLinecap="round" />
+    <path d="M37 77q16-31 48-17 35-19 58 9-3 27-30 34-13-3-27-7-14 5-26 6Q40 95 37 77Z" fill="#364f57" />
+    <ellipse cx="88" cy="111" rx="35" ry="25" fill="#f9e9cc" />
+    <ellipse cx="62" cy="82" rx="17" ry={surprised ? 22 : 19} fill="#fff9ea" />
+    <ellipse cx="111" cy="80" rx="17" ry={surprised ? 22 : 19} fill="#fff9ea" />
     {happy ? <>
-      <path d="M38 43q7-8 14 0M68 43q7-8 14 0" fill="none" stroke="#fff8e9" strokeWidth="4" strokeLinecap="round" />
-      <path d="M52 69q8 12 16 0" fill="none" stroke="#153a45" strokeWidth="3" strokeLinecap="round" />
+      <path d="M51 82q11-12 22 0M100 80q11-12 22 0" fill="none" stroke="#173b44" strokeWidth="5" strokeLinecap="round" />
     </> : <>
-      <ellipse cx="45" cy="44" rx={surprised ? 5 : 4} ry={surprised ? 7 : 5} fill="#fff8e9" />
-      <ellipse cx="75" cy="44" rx={surprised ? 5 : 4} ry={surprised ? 7 : 5} fill="#fff8e9" />
-      <circle cx={busy ? 47 : smug ? 47 : 45} cy="44" r="2.3" fill="#153a45" />
-      <circle cx={busy ? 77 : smug ? 77 : 75} cy="44" r="2.3" fill="#153a45" />
-      {surprised ? <>
-        <path d="M38 31q7-6 14-1M68 30q7-5 14 1" fill="none" stroke="#153a45" strokeWidth="3" strokeLinecap="round" />
-        <ellipse cx="60" cy="71" rx="4" ry="6" fill="#153a45" />
-      </> : <>
-        <path d={smug ? 'M38 32q8 5 15 0M68 32q8-5 15 0' : busy ? 'M38 31l14 3M68 34l14-3' : 'M38 32q7-3 14 0M68 32q7-3 14 0'} fill="none" stroke="#153a45" strokeWidth="3" strokeLinecap="round" />
-        <path d={smug ? 'M52 69q9 8 18-2' : busy ? 'M54 69q6 5 12 0' : 'M53 69q7 4 14 0'} fill="none" stroke="#153a45" strokeWidth="3" strokeLinecap="round" />
-      </>}
+      <ellipse cx={64 + look} cy="84" rx={surprised ? 5 : 6} ry={surprised ? 7 : 9} fill="#173b44" />
+      <ellipse cx={113 + look} cy="82" rx={surprised ? 5 : 6} ry={surprised ? 7 : 9} fill="#173b44" />
+      <circle cx={62 + look} cy="79" r="2.5" fill="white" />
+      <circle cx={111 + look} cy="77" r="2.5" fill="white" />
     </>}
-    <ellipse cx="60" cy="62" rx="6" ry="4" fill="#153a45" />
-    <circle cx="38" cy="58" r="3" fill="#f7af9c" opacity=".85" />
-    <circle cx="82" cy="58" r="3" fill="#f7af9c" opacity=".85" />
-    {smug && <path d="M68 70l-2 4 4-1" fill="#fff8e9" stroke="#153a45" strokeWidth="1" />}
+    <path d={surprised ? 'M50 53q11-8 23-2M103 51q12-7 23 1' : smug ? 'M50 56q13 7 23 0M102 55q12-5 23-1' : busy ? 'M49 55l23 5M103 60l23-7' : 'M49 56q11-6 23-1M103 54q12-5 23 0'} fill="none" stroke="#173b44" strokeWidth="4" strokeLinecap="round" />
+    <ellipse cx="87" cy="105" rx="10" ry="7" fill="#173b44" />
+    {surprised ? <ellipse cx="87" cy="126" rx="6" ry="8" fill="#173b44" /> :
+      <path d={happy ? 'M69 119q18 24 37-1' : smug ? 'M71 122q19 12 37-4' : busy ? 'M76 124q12 8 23-2' : 'M76 123q11 8 23-1'} fill="none" stroke="#173b44" strokeWidth="4" strokeLinecap="round" />}
+    <circle cx="50" cy="108" r="6" fill="#f4aa99" opacity=".7" />
+    <circle cx="126" cy="106" r="6" fill="#f4aa99" opacity=".7" />
+    {smug && <path d="M101 122l-3 6 6-2" fill="#fff9ea" stroke="#173b44" strokeWidth="2" />}
   </svg>;
 };
