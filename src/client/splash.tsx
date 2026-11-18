@@ -2,17 +2,43 @@ import './index.css';
 import { requestExpandedMode } from '@devvit/web/client';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Raccoon } from './Raccoon';
-import { ObjectArt } from './ObjectArt';
 
-export const Splash = () => <main className="splash">
-  <div className="splash-card">
-    <span className="eyebrow">THE ALLEY · DAILY LOGIC PUZZLE</span>
-    <div className="splash-stage" aria-hidden="true"><span className="splash-piece left"><ObjectArt object="can" /></span><span className="splash-raccoon"><Raccoon mood="waiting" /></span><span className="splash-piece right"><ObjectArt object="gem" /></span></div>
-    <h1>Release the<br />Raccoon!</h1>
-    <p>Five bins. Two laps. One mischievous trash chute.</p>
-    <button className="btn primary" type="button" onClick={(event) => requestExpandedMode(event.nativeEvent, 'game')}>▶ PLAY THE PUZZLE</button>
-  </div>
-</main>;
+export const Splash = () => (
+  <main className="splash apothecary">
+    <div className="night-sky" aria-hidden="true" />
+    <div className="splash-scene">
+      <div className="splash-copy">
+        <span className="brand-kicker">RELEASE THE RACCOON! PRESENTS</span>
+        <h1>
+          The Midnight
+          <br />
+          Apothecary
+        </h1>
+        <p>
+          Five enchanted jars. A page of clues. One raccoon who should probably
+          not have a wand.
+        </p>
+        <button
+          className="cast-button"
+          type="button"
+          onClick={(event) => requestExpandedMode(event.nativeEvent, 'game')}
+        >
+          ✦ PLAY TODAY&apos;S SPELL
+        </button>
+      </div>
+      <img
+        src="/apothecary/wizard-raccoon.png"
+        alt="Mischievous wizard raccoon with a striped tail and crooked hat"
+      />
+      <span className="splash-moon" aria-hidden="true">
+        ✦
+      </span>
+    </div>
+  </main>
+);
 
-createRoot(document.getElementById('root')!).render(<StrictMode><Splash /></StrictMode>);
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <Splash />
+  </StrictMode>
+);

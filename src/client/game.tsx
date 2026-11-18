@@ -1,67 +1,70 @@
 import './index.css';
-import { StrictMode, useEffect, useRef, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { selectDailyPuzzle } from './daily';
-import { correctCount, destinations, isSolved, objects, simulate } from './puzzle';
-import type { PuzzleState } from './puzzle';
-import { Raccoon } from './Raccoon';
-import type { RaccoonMood } from './Raccoon';
-import { ObjectArt } from './ObjectArt';
-import type { ObjectId } from './puzzle';
+import {
+  emptyPlacement,
+  formatClue,
+  ingredientInfo,
+  ingredients,
+  isComplete,
+  isWinningPlacement,
+  placeIngredient,
+} from './apothecary';
+import type { Ingredient, Placement, Puzzle } from './apothecary';
 
-const hints = [
-  'Hint 1: An open lid trades the object in the bin with the one in the raccoon’s paws. Closed lids skip that trade.',
-  'Hint 2: After lap one, the chute trades its two bins even if both lids are closed. Then the same lid pattern runs again.',
-  'Hint 3: Trace the carried object through both laps. A bin that starts wrong can still be right after the chute, so it may need to stay closed.',
-];
-const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-const closedLids = () => Array<boolean>(destinations.length).fill(false);
+type SpellResult = 'idle' | 'success' | 'mishap';
+
+const hintFor = (puzzle: Puzzle, level: number): string => {
+  if (level === 1) {
+    const anchor = puzzle.clues.find(
+      (clue) => clue.kind === 'middle' || clue.kind === 'end'
+    );
+    return anchor
+      ? `Begin with the clue about ${ingredientInfo[anchor.a].name}. What positions does it allow?`
+      : 'Look for a pair that must stay together, or a pair with one jar between them. Treat that pair as a single piece.';
+  }
+  if (level === 2)
+    return 'Combine two clues about the same ingredient. Each possible position rules out places for the others.';
+  return 'Try one possible position for a constrained ingredient. If it makes another clue impossible, cross that position out.';
+};
 
 export const App = () => {
   const [daily, setDaily] = useState(() => selectDailyPuzzle(new Date()));
-  const [lids, setLids] = useState(closedLids);
-  const [board, setBoard] = useState<PuzzleState>(() => daily.start);
+  const [placement, setPlacement] = useState<Placement>(emptyPlacement);
+  const [selectedIngredient, setSelectedIngredient] =
+    useState<Ingredient | null>(null);
+  const [selectedJar, setSelectedJar] = useState<number | null>(null);
   const [attempts, setAttempts] = useState(0);
-  const [running, setRunning] = useState(false);
-  const runningRef = useRef(false);
-  const runId = useRef(0);
-  const [completed, setCompleted] = useState(false);
-  const [lap, setLap] = useState('Ready');
-  const [lapText, setLapText] = useState('Waiting behind the gate...');
-  const [active, setActive] = useState(-1);
-  const [feedback, setFeedback] = useState({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
+  const [result, setResult] = useState<SpellResult>('idle');
   const [hintLevel, setHintLevel] = useState(0);
-  const [bounce, setBounce] = useState(0);
-  const [chuteMoving, setChuteMoving] = useState(false);
-  const [chuteCargo, setChuteCargo] = useState<readonly [ObjectId, ObjectId]>(['gem', 'gem']);
-  const [visitAction, setVisitAction] = useState<'approach' | 'swap' | 'skip'>('approach');
-  const [swapCargo, setSwapCargo] = useState<readonly [ObjectId, ObjectId]>(['gem', 'gem']);
-  const [visitKey, setVisitKey] = useState(0);
+  const [message, setMessage] = useState(
+    'Choose an ingredient, then tap its jar.'
+  );
 
   useEffect(() => {
     const rollOver = () => {
       const next = selectDailyPuzzle(new Date());
       if (next.dateKey === daily.dateKey) return;
-      runId.current++;
-      runningRef.current = false;
       setDaily(next);
-      setLids(closedLids());
-      setBoard(next.start);
+      setPlacement(emptyPlacement());
+      setSelectedIngredient(null);
+      setSelectedJar(null);
       setAttempts(0);
-      setRunning(false);
-      setCompleted(false);
-      setLap('Ready');
-      setLapText('Waiting behind the gate...');
-      setActive(-1);
-      setFeedback({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
+      setResult('idle');
       setHintLevel(0);
-      setBounce(0);
-      setChuteMoving(false);
-      setVisitAction('approach');
+      setMessage('A new page of the spellbook has appeared.');
     };
     const now = new Date();
-    const nextMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-    const timer = window.setTimeout(rollOver, nextMidnight - now.getTime() + 10);
+    const nextMidnight = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate() + 1
+    );
+    const timer = window.setTimeout(
+      rollOver,
+      nextMidnight - now.getTime() + 10
+    );
     document.addEventListener('visibilitychange', rollOver);
     return () => {
       window.clearTimeout(timer);
@@ -69,135 +72,248 @@ export const App = () => {
     };
   }, [daily.dateKey]);
 
-  const restore = (keepLids: boolean) => {
-    setBoard(daily.start);
-    setCompleted(false);
-    setActive(-1);
-    setLap('Ready');
-    setLapText('Waiting behind the gate...');
-    setFeedback({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
-    setChuteMoving(false);
-    setVisitAction('approach');
-    if (!keepLids) setLids(closedLids());
+  const put = (ingredient: Ingredient, jar: number) => {
+    setPlacement((current) => placeIngredient(current, ingredient, jar));
+    setSelectedIngredient(null);
+    setSelectedJar(null);
+    setResult('idle');
+    setMessage(
+      `${ingredientInfo[ingredient].name} floats into jar ${jar + 1}.`
+    );
   };
-
-  const toggleLid = (index: number) => {
-    if (runningRef.current) return;
-    if (completed) restore(true);
-    setLids((current) => current.map((open, bin) => bin === index ? !open : open));
-  };
-
-  const release = async () => {
-    if (runningRef.current) return;
-    runningRef.current = true;
-    const currentRun = ++runId.current;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 25 : 500;
-    const { visits, afterLapOne, afterChute, result } = simulate(lids, daily.start, daily.chute);
-    let previousState = daily.start;
-    setBoard(daily.start);
-    setCompleted(false);
-    setRunning(true);
-    setAttempts((value) => value + 1);
-    setLap('1 of 2');
-    setLapText('The gate springs open!');
-    setFeedback({ heading: 'The raccoon is loose!', detail: 'Watch what happens at each open lid.' });
-    setVisitAction('approach');
-    await pause(motion);
-    if (currentRun !== runId.current) return;
-    for (const visit of visits) {
-      setLap(`${visit.lap} of 2`);
-      setLapText(`Lap ${visit.lap} · Investigating bin ${visit.bin + 1}`);
-      setActive(visit.bin);
-      setVisitKey((value) => value + 1);
-      setVisitAction('approach');
-      await pause(motion * .55);
-      if (currentRun !== runId.current) return;
-      if (visit.swapped) {
-        setSwapCargo([previousState.paw, previousState.bins[visit.bin]!]);
-      }
-      setBoard(visit.state);
-      setVisitAction(visit.swapped ? 'swap' : 'skip');
-      if (visit.swapped) {
-        setBounce((value) => value + 1);
-        setFeedback({ heading: `CLATTER! A swap at bin ${visit.bin + 1}.`, detail: `The raccoon now holds ${objects[visit.state.paw].name.toLowerCase()}.` });
-      } else {
-        setFeedback({ heading: `Squeak! Bin ${visit.bin + 1} stays shut.`, detail: `The raccoon trots onward, still holding ${objects[visit.state.paw].name.toLowerCase()}.` });
-      }
-      previousState = visit.state;
-      await pause(motion * .45);
-      if (currentRun !== runId.current) return;
-      if (visit.bin === destinations.length - 1 && visit.lap === 1) {
-        const [first, second] = daily.chute;
-        setActive(-1);
-        setLap('CHUTE!');
-        setLapText('The machine has other ideas...');
-        setFeedback({ heading: 'K-CHUNK! The trash chute fires.', detail: `Bins ${first + 1} and ${second + 1} trade their contents, lids aside.` });
-        setChuteCargo([afterLapOne.bins[first]!, afterLapOne.bins[second]!]);
-        setChuteMoving(true);
-        setVisitAction('approach');
-        await pause(motion * 1.8);
-        if (currentRun !== runId.current) return;
-        setBoard(afterChute);
-        previousState = afterChute;
-        setChuteMoving(false);
-        setBounce((value) => value + 1);
-        setLapText('Lap 2! Same lids, newly scrambled bins.');
-        await pause(motion * .55);
-        if (currentRun !== runId.current) return;
-      }
+  const chooseIngredient = (ingredient: Ingredient) => {
+    if (selectedJar !== null) {
+      put(ingredient, selectedJar);
+      return;
     }
-    setActive(-1);
-    setVisitAction('approach');
-    setBoard(result);
-    setLap('Finished');
-    setLapText('Back at the gate.');
-    setCompleted(true);
-    setRunning(false);
-    runningRef.current = false;
-    setFeedback(isSolved(result)
-      ? { heading: '🎉 PERFECT HEIST!', detail: 'All five bins are sorted. Your raccoon escaped with the gem!' }
-      : { heading: '💥 WHAT A BEAUTIFUL MESS.', detail: `Only ${correctCount(result)} of ${destinations.length} bins are right. Try a different lid pattern.` });
+    setSelectedIngredient(ingredient);
+    setResult('idle');
+    setMessage(`Now tap the jar for ${ingredientInfo[ingredient].name}.`);
+  };
+  const chooseJar = (jar: number) => {
+    if (selectedIngredient) {
+      put(selectedIngredient, jar);
+      return;
+    }
+    setSelectedJar(jar);
+    setMessage(`Choose an ingredient for jar ${jar + 1}.`);
+  };
+  const reset = () => {
+    setPlacement(emptyPlacement());
+    setSelectedIngredient(null);
+    setSelectedJar(null);
+    setResult('idle');
+    setMessage('Fresh jars, fresh spell. Take your time.');
+  };
+  const cast = () => {
+    if (!isComplete(placement)) {
+      setMessage('The spell needs all five ingredients first.');
+      return;
+    }
+    setAttempts((count) => count + 1);
+    if (isWinningPlacement(placement, daily.puzzle)) {
+      setResult('success');
+      setMessage(
+        'Perfectly brewed! The moon crystal is yours, you clever little wizard.'
+      );
+    } else {
+      setResult('mishap');
+      setMessage(
+        'POOF! A very stylish mistake. Your jars are still here—read the clues and try again.'
+      );
+    }
   };
 
-  const mood: RaccoonMood = completed ? (isSolved(board) ? 'victory' : 'failure') : chuteMoving ? 'surprised' : running ? 'rummaging' : 'waiting';
-
-  return <main className="wrap">
-    <header className="brand"><div><span className="eyebrow">THE DAILY ALLEY PUZZLE</span><h1>Release the Raccoon!</h1></div><p className="lead">Set the lids. Sort the bins. Swipe the gem. <span>Two laps and one sneaky chute.</span></p></header>
-    <section className="game" data-stage={lap === '2 of 2' ? 'two' : lap === 'CHUTE!' ? 'chute' : 'one'} aria-label="Raccoon puzzle">
-      <div className="header"><span className="small">THE ALLEY · DAILY {String(daily.number).padStart(3, '0')}</span><div className="facts"><span>{daily.date} UTC</span><span className="lap-signal">{lap === 'Ready' ? 'READY' : lap === 'Finished' ? 'FINISHED' : lap === 'CHUTE!' ? '⚙ CHUTE!' : `LAP ${lap}`}</span><span>Attempts <b>{attempts}</b></span><span>Correct <b>{correctCount(board)}/{destinations.length}</b></span></div></div>
-      <div className="machine">
-        <div className={`paw mood-panel-${mood}`}><div key={bounce} className={`character ${completed && isSolved(board) ? 'celebrate' : bounce ? 'bounce' : ''}`}><Raccoon mood={mood} />{completed && isSolved(board) && <span className="character-gem" aria-hidden="true"><ObjectArt object="gem" /></span>}{completed && <span className="character-thought">{isSolved(board) ? 'MINE!' : 'TA-DA!'}</span>}</div><span className="paw-text"><small>IN THE RACCOON&apos;S PAWS</small><strong><ObjectArt object={board.paw} className="held-piece" /> {objects[board.paw].name}</strong><span className="hint">{lapText}</span></span>{completed && isSolved(board) && <span className="confetti" aria-hidden="true">✦ ✧ ✦</span>}</div>
-        <div className="board-area"><div className="board-guide"><span>START HERE →</span><strong>MATCH EACH BIN TO ITS LABEL</strong><span>1 → 2 → 3 → 4 → 5</span></div><div className="track">{destinations.map((destination, index) => {
-          const object = objects[board.bins[index] ?? 'peel'];
-          return <div className={`bin ${active === index ? `active action-${visitAction}` : ''} ${completed && board.bins[index] === destination.object ? 'good' : ''} ${daily.chute.includes(index) ? 'chute-bin' : ''} ${chuteMoving && daily.chute.includes(index) ? 'chute-rattle' : ''}`} key={destination.name}>
-            <div className="visitor-lane">{active === index && <span key={visitKey} className="visitor"><Raccoon mood="rummaging" /></span>}</div>
-            <div className="number">BIN {index + 1}</div><div className="destination"><ObjectArt object={destination.object} className="destination-piece" /> {destination.name}</div>
-            {daily.chute.includes(index) && <div className="chute-port" aria-label="Connected to trash chute">⚙ CHUTE PORT</div>}
-            <button className={`lid ${lids[index] ? 'on' : ''}`} type="button" aria-label={`Bin ${index + 1} lid, ${lids[index] ? 'open' : 'closed'}`} aria-pressed={lids[index]} disabled={running} onClick={() => toggleLid(index)}>{lids[index] ? 'OPEN' : 'CLOSED'}<span className="lid-knob" aria-hidden="true" /></button>
-            <div className="object-window"><div className="item-icon"><ObjectArt object={board.bins[index] ?? 'peel'} />{active === index && visitAction === 'swap' && <span key={visitKey} className="trade-burst"><span><ObjectArt object={swapCargo[0]} /></span><span><ObjectArt object={swapCargo[1]} /></span></span>}</div><div className="object-name">{object.name}</div></div>
-            {active === index && visitAction === 'skip' && <div className="skip-badge">NO PEEK!</div>}
-          </div>;
-        })}</div></div>
-        <div className={`chute-machine ${chuteMoving ? 'firing' : ''}`} aria-label={`Trash chute connects bin ${daily.chute[0] + 1} ${destinations[daily.chute[0]]!.name} and bin ${daily.chute[1] + 1} ${destinations[daily.chute[1]]!.name}`}>
-          <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[0] + 1}</strong><small>{destinations[daily.chute[0]]!.name}</small></div>
-          <div className="chute-pipe"><span className="chute-lever" aria-hidden="true">▰</span><span className="chute-label">THE MISCHIEVOUS TRASH CHUTE</span><span className="chute-flow" aria-hidden="true">⇄</span>{chuteMoving && <><span className="chute-clunk" aria-hidden="true">K-CHUNK!</span><span className="chute-object from-left" aria-hidden="true"><ObjectArt object={chuteCargo[0]} /></span><span className="chute-object from-right" aria-hidden="true"><ObjectArt object={chuteCargo[1]} /></span></>}</div>
-          <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[1] + 1}</strong><small>{destinations[daily.chute[1]]!.name}</small></div>
+  return (
+    <main className={`apothecary ${result}`}>
+      <div className="night-sky" aria-hidden="true" />
+      <div className="app-shell">
+        <header className="masthead">
+          <div className="brand-lockup">
+            <span className="brand-kicker">RELEASE THE RACCOON! PRESENTS</span>
+            <h1>The Midnight Apothecary</h1>
+            <p>Five jars. Five ingredients. One spellbook full of secrets.</p>
+          </div>
+          <div className="daily-badge">
+            <span>
+              THE DAILY SPELL · {String(daily.number).padStart(3, '0')}
+            </span>
+            <strong>{daily.date} UTC</strong>
+          </div>
+        </header>
+        <section className="workshop" aria-label="Daily apothecary puzzle">
+          <div className="workshop-top">
+            <div className="wizard-stage">
+              <div className="moon-window" aria-hidden="true">
+                <span className="moon" />
+              </div>
+              <img
+                className="wizard-art"
+                src="/apothecary/wizard-raccoon.png"
+                alt="A cheeky wizard raccoon raises a sparkling wand"
+              />
+              <span className="wizard-speech">
+                {result === 'success'
+                  ? 'Moon crystal acquired!'
+                  : result === 'mishap'
+                    ? 'I meant to do that.'
+                    : 'Psst... trust the clues!'}
+              </span>
+              {result === 'success' && (
+                <span className="moon-crystal" aria-hidden="true">
+                  ◆
+                </span>
+              )}
+            </div>
+            <div className="jar-stage">
+              <div className="stage-heading">
+                <div>
+                  <span className="overline">THE ENCHANTED SHELF</span>
+                  <h2>Fill the five jars</h2>
+                </div>
+                <p>Each ingredient belongs in exactly one jar.</p>
+              </div>
+              <div
+                className="shelf"
+                role="group"
+                aria-label="Five numbered apothecary jars"
+              >
+                {placement.map((ingredient, index) => (
+                  <button
+                    key={index}
+                    className={`jar-button ${selectedJar === index ? 'jar-selected' : ''} ${ingredient ? 'filled' : ''}`}
+                    type="button"
+                    onClick={() => chooseJar(index)}
+                    aria-label={`Jar ${index + 1}, ${ingredient ? ingredientInfo[ingredient].name : 'empty'}. ${selectedIngredient ? `Place ${ingredientInfo[selectedIngredient].name}` : 'Select jar'}`}
+                    aria-pressed={selectedJar === index}
+                  >
+                    <span className="jar-number">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className="jar-cork" />
+                    <span className="jar-neck" />
+                    <span className="jar-glass">
+                      <span className="jar-shine" />
+                      {ingredient ? (
+                        <img src={ingredientInfo[ingredient].image} alt="" />
+                      ) : (
+                        <span className="jar-empty">✦</span>
+                      )}
+                    </span>
+                    <span className="jar-name">
+                      {ingredient
+                        ? ingredientInfo[ingredient].name
+                        : 'Empty jar'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="shelf-ledge" aria-hidden="true" />
+            </div>
+          </div>
+          <div className="worktable">
+            <section className="spellbook" aria-labelledby="spellbook-heading">
+              <div className="book-header">
+                <span className="book-mark">✧</span>
+                <div>
+                  <span className="overline">TODAY'S CHALLENGE</span>
+                  <h2 id="spellbook-heading">From the spellbook</h2>
+                </div>
+              </div>
+              <ol>
+                {daily.puzzle.clues.map((clue, index) => (
+                  <li key={index}>{formatClue(clue)}</li>
+                ))}
+              </ol>
+            </section>
+            <section
+              className="ingredient-tray"
+              aria-labelledby="ingredients-heading"
+            >
+              <div className="tray-heading">
+                <div>
+                  <span className="overline">THE INGREDIENTS</span>
+                  <h2 id="ingredients-heading">Choose one, then a jar</h2>
+                </div>
+                <span className="tray-count">
+                  {placement.filter(Boolean).length} / 5 placed
+                </span>
+              </div>
+              <div className="ingredient-grid">
+                {ingredients.map((ingredient) => {
+                  const location = placement.indexOf(ingredient);
+                  return (
+                    <button
+                      key={ingredient}
+                      className={`ingredient-token ${selectedIngredient === ingredient ? 'chosen' : ''} ${location >= 0 ? 'placed' : ''}`}
+                      type="button"
+                      onClick={() => chooseIngredient(ingredient)}
+                      aria-pressed={selectedIngredient === ingredient}
+                      aria-label={`${ingredientInfo[ingredient].name}${location >= 0 ? `, in jar ${location + 1}` : ', available'}`}
+                    >
+                      <img src={ingredientInfo[ingredient].image} alt="" />
+                      <span>{ingredientInfo[ingredient].name}</span>
+                      {location >= 0 && <small>Jar {location + 1}</small>}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+          <div className="action-bar">
+            <div className="status" role="status" aria-live="polite">
+              <strong>
+                {result === 'success'
+                  ? 'SPELL SUCCESS!'
+                  : result === 'mishap'
+                    ? 'A MAGICAL MISHAP!'
+                    : 'Ready when you are, wizard.'}
+              </strong>
+              <span>{message}</span>
+              <small>
+                {attempts > 0
+                  ? `${attempts} spell${attempts === 1 ? '' : 's'} cast today`
+                  : ''}
+              </small>
+            </div>
+            <div className="actions">
+              <button className="quiet-button" type="button" onClick={reset}>
+                Reset
+              </button>
+              <button className="cast-button" type="button" onClick={cast}>
+                ✦ CAST THE SPELL!
+              </button>
+            </div>
+          </div>
+        </section>
+        <div className="help-row">
+          <p>
+            Use the clues to find the order. Tap an ingredient and a jar in
+            either order. Moving an ingredient never makes a duplicate.
+          </p>
+          <button
+            type="button"
+            onClick={() => setHintLevel((level) => Math.min(level + 1, 3))}
+          >
+            {hintLevel < 3 ? 'Need a hint?' : 'Hints shown'}
+          </button>
         </div>
-        <div className="runway"><span>↪ The raccoon circles the alley twice, 1 → 2 → 3 → 4 → 5 ↺</span></div>
+        {hintLevel > 0 && (
+          <div className="hint-panel" role="status">
+            <strong>Wizard&apos;s nudge {hintLevel}</strong>
+            <p>{hintFor(daily.puzzle, hintLevel)}</p>
+          </div>
+        )}
+        <footer>
+          One new spell each UTC day · No timer · No random outcomes
+        </footer>
       </div>
-      <div className="bottom"><div className="feedback" role="status" aria-live="polite"><strong>{feedback.heading}</strong><small>{feedback.detail}</small></div>
-        <div className="controls"><button className="btn" type="button" disabled={running} onClick={() => restore(false)}>Reset lids</button><button className="btn primary" type="button" disabled={running} onClick={() => void release()}>{running ? '⚙ RUMMAGING...' : completed ? '↺ TRY AGAIN' : '▶ RELEASE THE RACCOON!'}</button></div>
-      </div>
-    </section>
-    <div className="instructions" aria-label="Game rules">
-      <div className="rule"><b>① PICK THE LIDS</b> Tap a bin lid to leave it open or closed.</div>
-      <div className="rule"><b>② FOLLOW THE PAWS</b> An open lid swaps the bin&apos;s object with the one in the raccoon&apos;s paws. The raccoon makes two laps with the same lids.</div>
-      <div className="rule"><b>③ MIND THE CHUTE</b> Between laps, the marked bins trade contents, even with closed lids. Sort all five and leave with the gem.</div>
-    </div>
-    <div className="after"><button className="btn" type="button" disabled={running} onClick={() => setHintLevel((value) => Math.min(3, value + 1))}>💡 {hintLevel === 0 ? 'Hint' : hintLevel < 3 ? 'Another hint' : 'All hints shown'}</button><p className="note">No timer and no random outcomes. You can retry as often as you like. The same lid settings always produce the same result.</p></div>
-    {hintLevel > 0 && <p className="hint-text" role="status">{hints[hintLevel - 1]}</p>}
-    <p className="footer">Puzzle categories are illustrative and do not represent local recycling rules. Keyboard accessible controls; animations respect reduced-motion preferences.</p>
-  </main>;
+    </main>
+  );
 };
 
-createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>
+);

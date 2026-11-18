@@ -1,25 +1,27 @@
-# Release the Raccoon!
+# Release the Raccoon! — The Midnight Apothecary
 
-A daily five-bin, two-lap logic puzzle for Reddit, built with the Devvit React template.
+A daily deduction puzzle for Reddit, built with the Devvit React web template. A mischievous wizard raccoon needs help placing five magical ingredients in five numbered jars.
 
 ## How to play
 
-Five labeled bins start with one object each, and the raccoon carries the sixth. Tap a lid to leave it **open** or **closed**. Press **RELEASE THE RACCOON!** to watch the raccoon visit bins 1–5. At each open bin it trades its carried object with the contents; it skips closed bins.
+Each ingredient belongs in exactly one jar. Read the spellbook's four or five clues, tap an ingredient and a jar in either order, and press **CAST THE SPELL!**. Selecting an ingredient already in a jar moves it; placing one in an occupied jar returns the displaced ingredient to the tray. **Reset** clears the jars. An incorrect spell keeps your arrangement in place so you can revise it. Progressive hints give reasoning guidance without revealing the answer.
 
-After the first lap, the visible **trash chute** automatically exchanges the contents of its two connected bins, whether their lids are open or closed. The raccoon then visits bins 1–5 again with the **same** lid settings. Win by sorting all five bins and leaving the raccoon holding the gem. The chute activates once per attempt. Use **Reset lids** to restore the starting board, or change lids and retry after a result. Hints explain the rules without revealing the solution.
+The ingredients are Mandrake, Eye of Newt, Phoenix Feather, Bullfrog, and Carnivorous Plant. The moon crystal is a celebration reward, not a puzzle ingredient.
 
-## Daily rotation and puzzle validation
+## Daily puzzles
 
-Puzzle 1 begins on **2026-11-18 at 00:00 UTC**. The daily number increases at each UTC midnight, and the starting arrangement and fixed chute connection cycle through 30 curated puzzles. All players receive the same puzzle on the same UTC date. An open game switches at UTC midnight or when a sleeping tab becomes visible again. There is no randomness or server-side account state.
+Spell 1 begins at **00:00 UTC on November 18, 2026** and uses the introductory clues in the work order. The displayed spell number increases each UTC day. The 30 curated spells repeat in a fixed cycle, so everyone receives the same challenge on the same UTC date. An open game updates at UTC midnight or when its tab becomes visible again. There is no randomness or account state.
 
-The exhaustive validation test evaluates **720** six-object arrangements, **32** lid configurations and **10** chute pairs: 230,400 simulations. There are 216 unsolved arrangement/pair combinations with exactly one winning lid pattern. Of those, 180 defeat the old shortcut of opening every initially incorrect bin. The curated 30 all defeat that shortcut. Twenty-nine begin with 3–5 misplaced bins; one introductory exception has one misplaced bin and requires opening an initially correct bin. The set covers all ten chute connections, 26 distinct winning lid patterns and 30 distinct starting arrangements. We classify starting layouts only by the reproducible misplaced-bin count; we do not claim that count measures human difficulty. Under the current rules, the 20 qualifying puzzles requiring an initially correct bin to be opened all have one initially misplaced bin. Every curated puzzle also requires leaving at least one initially incorrect bin closed.
+The pure clue engine in `src/client/apothecary.ts` evaluates each clue against all **120** possible ingredient orders. Tests require exactly one solution for every published spell, distinct solutions, and no redundant clues. All 30 spells have different mixes of clue kinds. The first five have a middle or end clue as a gentle starting point. `tools/generate-apothecary.mjs` records the deterministic curation process. The active game checks the player's arrangement against the clues; solution orders are not rendered in the interface.
 
-## Development checks
+## Development
 
-- `npm run test:unit`: exhaustive puzzle validation, independent simulation checks, and UTC rotation tests
+- `npm run dev`: run the Reddit playtest using the Devvit template
+- `npm run test:unit`: test clue semantics, all daily solutions, placement controls, and UTC rotation
 - `npm run test:types`: TypeScript project check
 - `npm run lint`: ESLint
-- `npm run build`: Devvit client and server production build
-- `npm run dev`: Reddit playtest
+- `npm run build`: production client and server build
 
-The game uses the existing `splash.html` inline entrypoint and `game.html` expanded entrypoint. The pure simulation is in `src/client/puzzle.ts`, separate from the React interface. No new dependencies are required.
+The existing `splash.html` inline entrypoint opens `game.html` in expanded mode. The React interface is in `src/client/game.tsx` and `src/client/splash.tsx`; gameplay logic is separate. Original storybook artwork is kept under `public/apothecary`. No new runtime dependencies were added.
+
+The previous five-bin trash chute game remains recoverable from the `feature/trash-chute` Git branch.
