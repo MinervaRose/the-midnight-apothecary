@@ -13,16 +13,20 @@ export const Raccoon = ({ mood, className = '' }: RaccoonProps) => {
   const busy = mood === 'rummaging';
 
   return <svg className={`raccoon-svg mood-${mood} ${className}`} viewBox="0 0 120 112" aria-hidden="true" focusable="false">
-    <path d="M82 76c13-16 29-10 29 3 0 12-18 18-31 9" fill="#788892" stroke="#153a45" strokeWidth="4" strokeLinecap="round" />
-    <path d="M92 67c-3 5-4 11-2 17M105 71c-4 5-5 10-4 15" fill="none" stroke="#344d58" strokeWidth="7" />
+    <path d="M82 76c9-20 27-24 33-9 9 21-7 34-33 22" fill="#85979b" stroke="#153a45" strokeWidth="4" strokeLinecap="round" />
+    <path d="M97 60c-1 8 0 14 5 19M111 64c-6 4-9 11-8 20" fill="none" stroke="#344d58" strokeWidth="8" />
+    <path d="M87 79q9 9 21 7" fill="none" stroke="#b7c6bb" strokeWidth="3" strokeLinecap="round" />
     <ellipse cx="60" cy="84" rx="31" ry="24" fill="#85979b" stroke="#153a45" strokeWidth="4" />
     <ellipse cx="60" cy="90" rx="17" ry="14" fill="#f3e4c6" />
+    <path d="M46 72h28l-14 17Z" fill="#ed785b" stroke="#153a45" strokeWidth="3" strokeLinejoin="round" />
+    <path d="M51 76h18" stroke="#ffc67a" strokeWidth="2" strokeLinecap="round" />
     <path d="M34 74c-12 5-15 14-7 18M84 74c12 5 15 14 7 18" fill="none" stroke="#153a45" strokeWidth="13" strokeLinecap="round" />
     <path d="M34 74c-12 5-15 14-7 18M84 74c12 5 15 14 7 18" fill="none" stroke="#85979b" strokeWidth="8" strokeLinecap="round" />
     <path d="M41 91l-4 12M79 91l4 12" stroke="#153a45" strokeWidth="9" strokeLinecap="round" />
     <path d="M31 29 28 9 48 19M89 29 92 9 72 19" fill="#75868a" stroke="#153a45" strokeWidth="4" strokeLinejoin="round" />
     <path d="M32 21 33 15 42 21M88 21 87 15 78 21" fill="#f7af9c" />
     <ellipse cx="60" cy="47" rx="39" ry="37" fill="#85979b" stroke="#153a45" strokeWidth="4" />
+    <path d="M31 30q10-13 23-14" fill="none" stroke="#c5d2c5" strokeWidth="4" strokeLinecap="round" opacity=".85" />
     <path d="M23 40c12-17 23-15 37-6 14-9 25-11 37 6-3 19-16 25-37 20-21 5-34-1-37-20Z" fill="#344d58" />
     <ellipse cx="60" cy="65" rx="19" ry="13" fill="#f3e4c6" />
     {happy ? <>
@@ -44,5 +48,6 @@ export const Raccoon = ({ mood, className = '' }: RaccoonProps) => {
     <ellipse cx="60" cy="62" rx="6" ry="4" fill="#153a45" />
     <circle cx="38" cy="58" r="3" fill="#f7af9c" opacity=".85" />
     <circle cx="82" cy="58" r="3" fill="#f7af9c" opacity=".85" />
+    {smug && <path d="M68 70l-2 4 4-1" fill="#fff8e9" stroke="#153a45" strokeWidth="1" />}
   </svg>;
 };
