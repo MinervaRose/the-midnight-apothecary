@@ -1,6 +1,8 @@
 export type ObjectId = 'can' | 'paper' | 'peel' | 'jar' | 'bottle' | 'gem';
 export type PuzzleState = { bins: readonly ObjectId[]; paw: ObjectId };
 export type Visit = { lap: number; bin: number; swapped: boolean; state: PuzzleState };
+export type ChutePair = readonly [number, number];
+export type DailyPuzzle = { start: PuzzleState; chute: ChutePair };
 
 export const objects: Record<ObjectId, { icon: string; name: string }> = {
   can: { icon: '🥫', name: 'Tin can' },
@@ -40,15 +42,32 @@ export const visitBin = (state: PuzzleState, bin: number, open: boolean): Puzzle
   return { bins, paw: paw ?? state.paw };
 };
 
-export const simulate = (lids: readonly boolean[], start: PuzzleState = initialState()): { visits: Visit[]; result: PuzzleState } => {
+export const activateChute = (state: PuzzleState, chute: ChutePair): PuzzleState => {
+  const [first, second] = chute;
+  if (first < 0 || second >= destinations.length || first >= second) {
+    throw new RangeError('Chute must connect two different bins in visiting order');
+  }
+  const bins = [...state.bins];
+  [bins[first], bins[second]] = [bins[second]!, bins[first]!];
+  return { bins, paw: state.paw };
+};
+
+export const simulate = (lids: readonly boolean[], start: PuzzleState, chute: ChutePair): { visits: Visit[]; afterLapOne: PuzzleState; afterChute: PuzzleState; result: PuzzleState } => {
   let state: PuzzleState = { bins: [...start.bins], paw: start.paw };
   const visits: Visit[] = [];
+  let afterLapOne = state;
+  let afterChute = state;
   for (let lap = 1; lap <= 2; lap++) {
     for (let bin = 0; bin < destinations.length; bin++) {
       const swapped = lids[bin] === true;
       state = visitBin(state, bin, swapped);
       visits.push({ lap, bin, swapped, state });
     }
+    if (lap === 1) {
+      afterLapOne = state;
+      state = activateChute(state, chute);
+      afterChute = state;
+    }
   }
-  return { visits, result: state };
+  return { visits, afterLapOne, afterChute, result: state };
 };

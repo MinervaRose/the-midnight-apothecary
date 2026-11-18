@@ -22,6 +22,7 @@ export const selectDailyPuzzle = (now: Date) => {
       day: 'numeric',
     }),
     dateKey: new Date(utcDay).toISOString().slice(0, 10),
-    start: puzzle,
+    start: puzzle.start,
+    chute: puzzle.chute,
   };
 };

@@ -27,6 +27,27 @@ h1 { font-size:clamp(36px,6vw,67px); text-transform:uppercase; font-weight:1000;
 .bin { border-radius:16px; padding:11px 8px 12px; background:#fff9e8; border:3px solid #32616b; text-align:center; position:relative; transition:transform .2s,box-shadow .2s,background .2s; }
 .bin.active { transform:translateY(-5px); background:#fff; box-shadow:0 0 0 4px var(--yellow), 0 9px 0 #a97b47; }
 .bin.good { border-color:#3d927d; }
+.bin.chute-bin { box-shadow:inset 0 0 0 3px #d99438; }
+.chute-port { margin:2px auto 0; padding:3px 2px; max-width:102px; border-radius:5px; background:#eaa83d; color:#153a45; font-size:9px; font-weight:1000; letter-spacing:.5px; }
+.chute-rattle { animation:chute-rattle .24s ease-in-out 4; }
+.chute-machine { display:flex; align-items:stretch; max-width:730px; margin:15px auto 0; filter:drop-shadow(0 4px 0 #9a6b36); }
+.chute-end { z-index:1; flex:0 0 104px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px; border:3px solid #153a45; border-radius:12px; background:#eaa83d; text-align:center; font-size:12px; line-height:1.1; }
+.chute-end small { font-size:10px; text-transform:uppercase; font-weight:900; }
+.chute-bolt { font-size:18px; line-height:1; }
+.chute-pipe { position:relative; flex:1; min-width:0; overflow:hidden; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; margin:9px -3px; border:3px solid #153a45; border-left:0; border-right:0; background:repeating-linear-gradient(90deg,#427a82 0,#427a82 15px,#4f8a8c 15px,#4f8a8c 30px); color:#fff9e8; }
+.chute-pipe::before,.chute-pipe::after { content:''; position:absolute; left:0; right:0; height:3px; background:#9ac0a7; }
+.chute-pipe::before { top:4px; } .chute-pipe::after { bottom:4px; }
+.chute-label { z-index:1; font-weight:1000; letter-spacing:1px; font-size:10px; text-align:center; text-shadow:1px 1px #153a45; }
+.chute-flow { font-size:18px; line-height:1; }
+.chute-machine.firing .chute-bolt { animation:gear .6s linear infinite; }
+.chute-machine.firing .chute-pipe { background:repeating-linear-gradient(90deg,#567c89 0,#567c89 15px,#6c9a9e 15px,#6c9a9e 30px); }
+.chute-object { position:absolute; z-index:2; top:50%; font-size:26px; transform:translateY(-50%); filter:drop-shadow(1px 1px 2px #153a45); }
+.from-left { left:5%; animation:chute-left .8s ease-in-out forwards; }
+.from-right { right:5%; animation:chute-right .8s ease-in-out forwards; }
+@keyframes chute-left { from { left:5%; } to { left:85%; } }
+@keyframes chute-right { from { right:5%; } to { right:85%; } }
+@keyframes chute-rattle { 0%,100% { transform:translateX(0) rotate(0) } 25% { transform:translateX(-3px) rotate(-1deg) } 75% { transform:translateX(3px) rotate(1deg) } }
+@keyframes gear { to { transform:rotate(360deg) } }
 .number { font-size:10px; font-weight:900; letter-spacing:1.2px; color:#4d6d71; }
 .destination { font-weight:1000; font-size:15px; margin:5px 0 7px; text-transform:uppercase; }
 .item-icon { font-size:clamp(32px,5vw,51px); height:63px; display:flex; align-items:center; justify-content:center; }
@@ -56,6 +77,7 @@ h1 { font-size:clamp(36px,6vw,67px); text-transform:uppercase; font-weight:1000;
 @keyframes celebrate { from { transform:rotate(-12deg) translateY(0) } to { transform:rotate(12deg) translateY(-10px) } }
 @media(max-width:700px) { .wrap { padding:17px 12px 35px; } .instructions { grid-template-columns:1fr; gap:6px; } .rule { padding:9px 11px; } .track { gap:5px; } .bin { padding:8px 3px 10px; border-width:2px; border-radius:11px; } .destination { font-size:11px; } .number { font-size:9px; } .item-icon { height:45px; font-size:31px; } .object-name { font-size:10px; } .lid { font-size:10px; padding:8px 2px; min-height:42px; } .bottom { grid-template-columns:1fr; gap:10px; } .controls { justify-content:center; } .btn.primary { flex:1; min-width:170px; } }
 @media(max-width:700px) { .track { grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; } .bin { grid-column:span 2; } .bin:nth-child(4) { grid-column:2/span 2; } .bin:nth-child(5) { grid-column:4/span 2; } .object-name { min-height:30px; } .lid { min-height:44px; font-size:11px; } }
+@media(max-width:700px) { .chute-end { flex-basis:64px; font-size:10px; } .chute-end small { font-size:9px; } .chute-label { font-size:8px; letter-spacing:0; } .chute-port { font-size:8px; } .chute-object { font-size:20px; } }
 @media(prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
 .rule b.inline { display:inline; }
 .splash { min-height:100vh; display:grid; place-items:center; padding:16px; background:repeating-linear-gradient(135deg,#f9de99 0px,#f9de99 15px,#f3d58d 15px,#f3d58d 30px); }

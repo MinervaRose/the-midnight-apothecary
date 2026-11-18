@@ -8,7 +8,7 @@ export const Splash = () => <main className="splash">
     <span className="eyebrow">THE ALLEY · DAILY LOGIC PUZZLE</span>
     <div className="splash-raccoon" aria-hidden="true">🦝</div>
     <h1>Release the<br />Raccoon!</h1>
-    <p>Five bins. Two laps. One very nosy raccoon.</p>
+    <p>Five bins. Two laps. One mischievous trash chute.</p>
     <button className="btn primary" type="button" onClick={(event) => requestExpandedMode(event.nativeEvent, 'game')}>▶ PLAY THE PUZZLE</button>
   </div>
 </main>;

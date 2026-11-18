@@ -6,9 +6,9 @@ import { correctCount, destinations, isSolved, objects, simulate } from './puzzl
 import type { PuzzleState } from './puzzle';
 
 const hints = [
-  'Hint 1: A closed lid leaves both objects untouched. An open lid trades the two objects. The raccoon remembers what it is carrying.',
-  'Hint 2: Every open lid is visited twice. Try reasoning backwards from the end: the raccoon must leave with the gem.',
-  'Hint 3: Check which bins already hold the right object. Can any of those lids safely stay closed for both visits?',
+  'Hint 1: An open lid trades the object in the bin with the one in the raccoon’s paws. Closed lids skip that trade.',
+  'Hint 2: After lap one, the chute trades its two bins even if both lids are closed. Then the same lid pattern runs again.',
+  'Hint 3: Trace the carried object through both laps. A bin that starts wrong can still be right after the chute, so it may need to stay closed.',
 ];
 const pause = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const closedLids = () => Array<boolean>(destinations.length).fill(false);
@@ -28,6 +28,8 @@ export const App = () => {
   const [feedback, setFeedback] = useState({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
   const [hintLevel, setHintLevel] = useState(0);
   const [bounce, setBounce] = useState(0);
+  const [chuteMoving, setChuteMoving] = useState(false);
+  const [chuteCargo, setChuteCargo] = useState<readonly [string, string]>(['', '']);
 
   useEffect(() => {
     const rollOver = () => {
@@ -47,6 +49,7 @@ export const App = () => {
       setFeedback({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
       setHintLevel(0);
       setBounce(0);
+      setChuteMoving(false);
     };
     const now = new Date();
     const nextMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
@@ -65,6 +68,7 @@ export const App = () => {
     setLap('Ready');
     setLapText('Waiting behind the gate...');
     setFeedback({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
+    setChuteMoving(false);
     if (!keepLids) setLids(closedLids());
   };
 
@@ -79,7 +83,7 @@ export const App = () => {
     runningRef.current = true;
     const currentRun = ++runId.current;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 30 : 650;
-    const { visits, result } = simulate(lids, daily.start);
+    const { visits, afterLapOne, afterChute, result } = simulate(lids, daily.start, daily.chute);
     setBoard(daily.start);
     setCompleted(false);
     setRunning(true);
@@ -105,9 +109,20 @@ export const App = () => {
       await pause(motion * .42);
       if (currentRun !== runId.current) return;
       if (visit.bin === destinations.length - 1 && visit.lap === 1) {
-        setLapText('Round again! Same lids, same habits.');
-        setFeedback({ heading: 'One lap down!', detail: 'Here comes the raccoon again.' });
-        await pause(motion * .75);
+        const [first, second] = daily.chute;
+        setActive(-1);
+        setLap('CHUTE!');
+        setLapText('The machine has other ideas...');
+        setFeedback({ heading: 'K-CHUNK! The trash chute fires.', detail: `Bins ${first + 1} and ${second + 1} trade their contents, lids aside.` });
+        setChuteCargo([objects[afterLapOne.bins[first]!].icon, objects[afterLapOne.bins[second]!].icon]);
+        setChuteMoving(true);
+        await pause(motion * 1.3);
+        if (currentRun !== runId.current) return;
+        setBoard(afterChute);
+        setChuteMoving(false);
+        setBounce((value) => value + 1);
+        setLapText('Lap 2! Same lids, newly scrambled bins.');
+        await pause(motion * .7);
         if (currentRun !== runId.current) return;
       }
     }
@@ -126,11 +141,11 @@ export const App = () => {
   return <main className="wrap">
     <div className="top"><span className="eyebrow">Daily logic puzzle</span><span className="stamp">PLAYABLE PUZZLE</span></div>
     <h1>Release the<br />Raccoon! <span aria-hidden="true">🦝</span></h1>
-    <p className="lead">Five bins. Two laps. One very nosy raccoon. Set the lids so every bin gets the right object and our furry thief escapes with the shiny gem.</p>
+    <p className="lead">Five bins. Two laps. One very nosy raccoon. A mischievous trash chute swaps two bins between laps. Set the lids so every bin gets the right object and our furry thief escapes with the shiny gem.</p>
     <div className="instructions" aria-label="Game rules">
       <div className="rule"><b>① SET THE LIDS</b> Tap each lid to make it <b className="inline">OPEN</b> or <b className="inline">CLOSED</b> before release.</div>
       <div className="rule"><b>② FOLLOW THE PAWS</b> At every open lid, the raccoon swaps the object it holds with the one inside. Closed lids are skipped.</div>
-      <div className="rule"><b>③ TWO LAPS, SAME SETTINGS</b> The raccoon visits bins 1 → 5 twice. Sort all five bins and finish with 💎 in its paws.</div>
+      <div className="rule"><b>③ WATCH THE CHUTE</b> After lap 1, the marked bins trade contents through the chute, even with closed lids. Then the raccoon visits 1 → 5 again with the same lids. Finish holding 💎.</div>
     </div>
     <section className="game" aria-label="Raccoon puzzle">
       <div className="header"><span className="small">THE ALLEY · DAILY {String(daily.number).padStart(3, '0')}</span><div className="facts"><span>{daily.date} UTC</span><span>Lap <b>{lap}</b></span><span>Attempts <b>{attempts}</b></span><span>Correct <b>{correctCount(board)}/{destinations.length}</b></span></div></div>
@@ -138,12 +153,18 @@ export const App = () => {
         <div className="paw"><span key={bounce} className={`animal ${completed && isSolved(board) ? 'celebrate' : bounce ? 'bounce' : ''}`} aria-hidden="true">🦝</span><span className="paw-text"><small>In the raccoon&apos;s paws</small><strong><span className="item">{objects[board.paw].icon}</span> {objects[board.paw].name}</strong><span className="hint">{lapText}</span></span></div>
         <div className="track">{destinations.map((destination, index) => {
           const object = objects[board.bins[index] ?? 'peel'];
-          return <div className={`bin ${active === index ? 'active' : ''} ${completed && board.bins[index] === destination.object ? 'good' : ''}`} key={destination.name}>
+          return <div className={`bin ${active === index ? 'active' : ''} ${completed && board.bins[index] === destination.object ? 'good' : ''} ${daily.chute.includes(index) ? 'chute-bin' : ''} ${chuteMoving && daily.chute.includes(index) ? 'chute-rattle' : ''}`} key={destination.name}>
             <div className="number">BIN {index + 1}</div><div className="destination">{destination.icon} {destination.name}</div>
+            {daily.chute.includes(index) && <div className="chute-port" aria-label="Connected to trash chute">⚙ CHUTE PORT</div>}
             <div className="item-icon" aria-hidden="true">{object.icon}</div><div className="object-name">{object.name}</div>
             <button className={`lid ${lids[index] ? 'on' : ''}`} type="button" aria-label={`Bin ${index + 1} lid, ${lids[index] ? 'open' : 'closed'}`} aria-pressed={lids[index]} disabled={running} onClick={() => toggleLid(index)}>{lids[index] ? '🔓 OPEN' : '🔒 CLOSED'}</button>
           </div>;
         })}</div>
+        <div className={`chute-machine ${chuteMoving ? 'firing' : ''}`} aria-label={`Trash chute connects bin ${daily.chute[0] + 1} ${destinations[daily.chute[0]]!.name} and bin ${daily.chute[1] + 1} ${destinations[daily.chute[1]]!.name}`}>
+          <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[0] + 1}</strong><small>{destinations[daily.chute[0]]!.name}</small></div>
+          <div className="chute-pipe"><span className="chute-label">THE MISCHIEVOUS TRASH CHUTE</span><span className="chute-flow" aria-hidden="true">⇄</span>{chuteMoving && <><span className="chute-object from-left" aria-hidden="true">{chuteCargo[0]}</span><span className="chute-object from-right" aria-hidden="true">{chuteCargo[1]}</span></>}</div>
+          <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[1] + 1}</strong><small>{destinations[daily.chute[1]]!.name}</small></div>
+        </div>
         <div className="runway"><span>↪ The raccoon circles the alley twice, 1 → 2 → 3 → 4 → 5 ↺</span></div>
       </div>
       <div className="bottom"><div className="feedback" role="status" aria-live="polite"><strong>{feedback.heading}</strong><small>{feedback.detail}</small></div>
