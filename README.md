@@ -4,6 +4,10 @@
 
 A mischievous wizard raccoon has five enchanted jars, five magical ingredients, and a spellbook full of clues. Place each ingredient in its proper jar, cast the spell, and collect a little moonlight. The Midnight Apothecary brings playful illustration, approachable deduction, and accessible tap or keyboard controls to Reddit.
 
+**Play the game:** [The Midnight Apothecary on Reddit](https://www.reddit.com/r/midnight_apothecary/comments/1xznz7o/releasetheraccoon/)
+
+**Hackathon submission:** [View on Devpost](https://devpost.com/software/the-midnight-apothecary)
+
 ## How to play
 
 1. Read the spellbook clues. Each ingredient belongs in exactly one numbered jar.
