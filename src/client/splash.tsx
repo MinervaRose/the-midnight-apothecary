@@ -8,7 +8,7 @@ export const Splash = () => (
     <div className="night-sky" aria-hidden="true" />
     <div className="splash-scene">
       <div className="splash-copy">
-        <span className="brand-kicker">RELEASE THE RACCOON! PRESENTS</span>
+        <span className="brand-kicker">A Daily Spell Puzzle</span>
         <h1>
           The Midnight
           <br />

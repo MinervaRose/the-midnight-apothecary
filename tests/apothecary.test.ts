@@ -10,10 +10,10 @@ import {
   matchesClue,
   placeIngredient,
   solvePuzzle,
-} from '../src/client/apothecary.ts';
-import type { Clue, Placement } from '../src/client/apothecary.ts';
-import { dailyPuzzles } from '../src/client/apothecary-puzzles.ts';
-import { DAILY_START_UTC, selectDailyPuzzle } from '../src/client/daily.ts';
+} from '../src/shared/apothecary.ts';
+import type { Clue, Placement } from '../src/shared/apothecary.ts';
+import { dailyPuzzles } from '../src/shared/apothecary-puzzles.ts';
+import { DAILY_START_UTC, selectDailyPuzzle } from '../src/shared/daily.ts';
 
 test('all 120 ingredient permutations are distinct and complete', () => {
   const orders = allArrangements();
