@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { selectDailyPuzzle } from './daily';
 import { correctCount, destinations, isSolved, objects, simulate } from './puzzle';
 import type { PuzzleState } from './puzzle';
+import { Raccoon } from './Raccoon';
+import type { RaccoonMood } from './Raccoon';
 
 const hints = [
   'Hint 1: An open lid trades the object in the bin with the one in the raccoon’s paws. Closed lids skip that trade.',
@@ -30,6 +32,9 @@ export const App = () => {
   const [bounce, setBounce] = useState(0);
   const [chuteMoving, setChuteMoving] = useState(false);
   const [chuteCargo, setChuteCargo] = useState<readonly [string, string]>(['', '']);
+  const [visitAction, setVisitAction] = useState<'approach' | 'swap' | 'skip'>('approach');
+  const [swapCargo, setSwapCargo] = useState<readonly [string, string]>(['', '']);
+  const [visitKey, setVisitKey] = useState(0);
 
   useEffect(() => {
     const rollOver = () => {
@@ -50,6 +55,7 @@ export const App = () => {
       setHintLevel(0);
       setBounce(0);
       setChuteMoving(false);
+      setVisitAction('approach');
     };
     const now = new Date();
     const nextMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
@@ -69,6 +75,7 @@ export const App = () => {
     setLapText('Waiting behind the gate...');
     setFeedback({ heading: 'Plan your heist.', detail: 'Choose which bin lids stay open for both laps.' });
     setChuteMoving(false);
+    setVisitAction('approach');
     if (!keepLids) setLids(closedLids());
   };
 
@@ -82,8 +89,9 @@ export const App = () => {
     if (runningRef.current) return;
     runningRef.current = true;
     const currentRun = ++runId.current;
-    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 30 : 650;
+    const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 25 : 500;
     const { visits, afterLapOne, afterChute, result } = simulate(lids, daily.start, daily.chute);
+    let previousState = daily.start;
     setBoard(daily.start);
     setCompleted(false);
     setRunning(true);
@@ -91,22 +99,30 @@ export const App = () => {
     setLap('1 of 2');
     setLapText('The gate springs open!');
     setFeedback({ heading: 'The raccoon is loose!', detail: 'Watch what happens at each open lid.' });
+    setVisitAction('approach');
     await pause(motion);
     if (currentRun !== runId.current) return;
     for (const visit of visits) {
       setLap(`${visit.lap} of 2`);
       setLapText(`Lap ${visit.lap} · Investigating bin ${visit.bin + 1}`);
       setActive(visit.bin);
-      await pause(motion * .63);
+      setVisitKey((value) => value + 1);
+      setVisitAction('approach');
+      await pause(motion * .55);
       if (currentRun !== runId.current) return;
+      if (visit.swapped) {
+        setSwapCargo([objects[previousState.paw].icon, objects[previousState.bins[visit.bin]!].icon]);
+      }
       setBoard(visit.state);
+      setVisitAction(visit.swapped ? 'swap' : 'skip');
       if (visit.swapped) {
         setBounce((value) => value + 1);
         setFeedback({ heading: `CLATTER! A swap at bin ${visit.bin + 1}.`, detail: `The raccoon now holds ${objects[visit.state.paw].name.toLowerCase()}.` });
       } else {
         setFeedback({ heading: `Squeak! Bin ${visit.bin + 1} stays shut.`, detail: `The raccoon trots onward, still holding ${objects[visit.state.paw].name.toLowerCase()}.` });
       }
-      await pause(motion * .42);
+      previousState = visit.state;
+      await pause(motion * .45);
       if (currentRun !== runId.current) return;
       if (visit.bin === destinations.length - 1 && visit.lap === 1) {
         const [first, second] = daily.chute;
@@ -116,17 +132,20 @@ export const App = () => {
         setFeedback({ heading: 'K-CHUNK! The trash chute fires.', detail: `Bins ${first + 1} and ${second + 1} trade their contents, lids aside.` });
         setChuteCargo([objects[afterLapOne.bins[first]!].icon, objects[afterLapOne.bins[second]!].icon]);
         setChuteMoving(true);
-        await pause(motion * 1.3);
+        setVisitAction('approach');
+        await pause(motion * 1.8);
         if (currentRun !== runId.current) return;
         setBoard(afterChute);
+        previousState = afterChute;
         setChuteMoving(false);
         setBounce((value) => value + 1);
         setLapText('Lap 2! Same lids, newly scrambled bins.');
-        await pause(motion * .7);
+        await pause(motion * .55);
         if (currentRun !== runId.current) return;
       }
     }
     setActive(-1);
+    setVisitAction('approach');
     setBoard(result);
     setLap('Finished');
     setLapText('Back at the gate.');
@@ -138,6 +157,8 @@ export const App = () => {
       : { heading: '💥 WHAT A BEAUTIFUL MESS.', detail: `Only ${correctCount(result)} of ${destinations.length} bins are right. Try a different lid pattern.` });
   };
 
+  const mood: RaccoonMood = completed ? (isSolved(board) ? 'victory' : 'failure') : chuteMoving ? 'surprised' : running ? 'rummaging' : 'waiting';
+
   return <main className="wrap">
     <div className="top"><span className="eyebrow">Daily logic puzzle</span><span className="stamp">PLAYABLE PUZZLE</span></div>
     <h1>Release the<br />Raccoon! <span aria-hidden="true">🦝</span></h1>
@@ -147,22 +168,24 @@ export const App = () => {
       <div className="rule"><b>② FOLLOW THE PAWS</b> At every open lid, the raccoon swaps the object it holds with the one inside. Closed lids are skipped.</div>
       <div className="rule"><b>③ WATCH THE CHUTE</b> After lap 1, the marked bins trade contents through the chute, even with closed lids. Then the raccoon visits 1 → 5 again with the same lids. Finish holding 💎.</div>
     </div>
-    <section className="game" aria-label="Raccoon puzzle">
-      <div className="header"><span className="small">THE ALLEY · DAILY {String(daily.number).padStart(3, '0')}</span><div className="facts"><span>{daily.date} UTC</span><span>Lap <b>{lap}</b></span><span>Attempts <b>{attempts}</b></span><span>Correct <b>{correctCount(board)}/{destinations.length}</b></span></div></div>
+    <section className="game" data-stage={lap === '2 of 2' ? 'two' : lap === 'CHUTE!' ? 'chute' : 'one'} aria-label="Raccoon puzzle">
+      <div className="header"><span className="small">THE ALLEY · DAILY {String(daily.number).padStart(3, '0')}</span><div className="facts"><span>{daily.date} UTC</span><span className="lap-signal">{lap === 'Ready' ? 'READY' : lap === 'Finished' ? 'FINISHED' : lap === 'CHUTE!' ? '⚙ CHUTE!' : `LAP ${lap}`}</span><span>Attempts <b>{attempts}</b></span><span>Correct <b>{correctCount(board)}/{destinations.length}</b></span></div></div>
       <div className="machine">
-        <div className="paw"><span key={bounce} className={`animal ${completed && isSolved(board) ? 'celebrate' : bounce ? 'bounce' : ''}`} aria-hidden="true">🦝</span><span className="paw-text"><small>In the raccoon&apos;s paws</small><strong><span className="item">{objects[board.paw].icon}</span> {objects[board.paw].name}</strong><span className="hint">{lapText}</span></span></div>
+        <div className={`paw mood-panel-${mood}`}><div key={bounce} className={`character ${completed && isSolved(board) ? 'celebrate' : bounce ? 'bounce' : ''}`}><Raccoon mood={mood} />{completed && isSolved(board) && <span className="character-gem" aria-hidden="true">💎</span>}{completed && <span className="character-thought">{isSolved(board) ? 'MINE!' : 'TA-DA!'}</span>}</div><span className="paw-text"><small>In the raccoon&apos;s paws</small><strong><span className="item">{objects[board.paw].icon}</span> {objects[board.paw].name}</strong><span className="hint">{lapText}</span></span>{completed && isSolved(board) && <span className="confetti" aria-hidden="true">✦ ✧ ✦</span>}</div>
         <div className="track">{destinations.map((destination, index) => {
           const object = objects[board.bins[index] ?? 'peel'];
-          return <div className={`bin ${active === index ? 'active' : ''} ${completed && board.bins[index] === destination.object ? 'good' : ''} ${daily.chute.includes(index) ? 'chute-bin' : ''} ${chuteMoving && daily.chute.includes(index) ? 'chute-rattle' : ''}`} key={destination.name}>
+          return <div className={`bin ${active === index ? `active action-${visitAction}` : ''} ${completed && board.bins[index] === destination.object ? 'good' : ''} ${daily.chute.includes(index) ? 'chute-bin' : ''} ${chuteMoving && daily.chute.includes(index) ? 'chute-rattle' : ''}`} key={destination.name}>
+            <div className="visitor-lane">{active === index && <span key={visitKey} className="visitor"><Raccoon mood="rummaging" /></span>}</div>
             <div className="number">BIN {index + 1}</div><div className="destination">{destination.icon} {destination.name}</div>
             {daily.chute.includes(index) && <div className="chute-port" aria-label="Connected to trash chute">⚙ CHUTE PORT</div>}
-            <div className="item-icon" aria-hidden="true">{object.icon}</div><div className="object-name">{object.name}</div>
+            <div className="item-icon" aria-hidden="true">{object.icon}{active === index && visitAction === 'swap' && <span key={visitKey} className="trade-burst"><span>{swapCargo[0]}</span><span>{swapCargo[1]}</span></span>}</div><div className="object-name">{object.name}</div>
+            {active === index && visitAction === 'skip' && <div className="skip-badge">NO PEEK!</div>}
             <button className={`lid ${lids[index] ? 'on' : ''}`} type="button" aria-label={`Bin ${index + 1} lid, ${lids[index] ? 'open' : 'closed'}`} aria-pressed={lids[index]} disabled={running} onClick={() => toggleLid(index)}>{lids[index] ? '🔓 OPEN' : '🔒 CLOSED'}</button>
           </div>;
         })}</div>
         <div className={`chute-machine ${chuteMoving ? 'firing' : ''}`} aria-label={`Trash chute connects bin ${daily.chute[0] + 1} ${destinations[daily.chute[0]]!.name} and bin ${daily.chute[1] + 1} ${destinations[daily.chute[1]]!.name}`}>
           <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[0] + 1}</strong><small>{destinations[daily.chute[0]]!.name}</small></div>
-          <div className="chute-pipe"><span className="chute-label">THE MISCHIEVOUS TRASH CHUTE</span><span className="chute-flow" aria-hidden="true">⇄</span>{chuteMoving && <><span className="chute-object from-left" aria-hidden="true">{chuteCargo[0]}</span><span className="chute-object from-right" aria-hidden="true">{chuteCargo[1]}</span></>}</div>
+          <div className="chute-pipe"><span className="chute-lever" aria-hidden="true">▰</span><span className="chute-label">THE MISCHIEVOUS TRASH CHUTE</span><span className="chute-flow" aria-hidden="true">⇄</span>{chuteMoving && <><span className="chute-clunk" aria-hidden="true">K-CHUNK!</span><span className="chute-object from-left" aria-hidden="true">{chuteCargo[0]}</span><span className="chute-object from-right" aria-hidden="true">{chuteCargo[1]}</span></>}</div>
           <div className="chute-end"><span className="chute-bolt">⚙</span><strong>BIN {daily.chute[1] + 1}</strong><small>{destinations[daily.chute[1]]!.name}</small></div>
         </div>
         <div className="runway"><span>↪ The raccoon circles the alley twice, 1 → 2 → 3 → 4 → 5 ↺</span></div>
